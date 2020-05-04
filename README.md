@@ -43,8 +43,7 @@ basically means "Execute function 27". **Why do a simple reverse?** Imagine that
 hex, but ASCII representable characters. Example: if the thrid and forth characters are `9t`, then `ASCII(t)=116 - ASCII(9)=9 = 107`, `ASCII(107) = k`. So `k` is the separator character. 
 4) Get the next `n` characters until you reach the separator chracter, in this case `k`. Add the `ASCII` values from those chracters and you will get the interpretable message length. If the  
 letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable characters`.
-5) Get the next evaluable characters, `91` in this case.  and use the remaining characters `216 - 2(function) - 2(separator definition) - 2(message_length) - 1 (separator) - 91 (evaluable characters) =  120 characters` for 
-XORing the evauable characters, a.k.a. use as key.  
+5) Get the next evaluable characters, `91` in this case.  and use the remaining characters `216 - 2(function) - 2(separator definition) - 2(message_length) - 1 (separator) - 91 (evaluable characters) - 1 (separator)=  119 characters` for XORing the evauable characters, a.k.a. use as key.  
   - If `len(key) > len(evaluable_characters)` get `key[0:len(evaluable_characters)]` and apply the XOR.
   - If `len(evaluable_characters) > len(key)` get `len(evaluable_characters) // len(key) = X`, then take `key * X + key[0:(len(evaluable_characters) - (len(key) * X))]`, then XOR.  
   - If lengths are equal, XOR them directly
