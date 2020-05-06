@@ -152,7 +152,7 @@ class Server:
 
         # Validate data length
         if (7 + len(key) + len(to_xor_pk)) == 128:
-            print('[+] Valid calculationrs')
+            print('[+] Valid calculations')
 
         # Concat everything
         final_pk = non_xored_pk + xored_pk + key
@@ -161,6 +161,8 @@ class Server:
         final_pk = base64.b64encode(bytes(final_pk, 'utf8')).decode('utf8')
 
         print('[+] Final PK: {}({} characters with {} bits)'.format(repr(final_pk), len(final_pk), len(final_pk) * 8))
+
+        return final_pk
 
 
 if __name__ == '__main__':
