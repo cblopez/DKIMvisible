@@ -51,3 +51,58 @@ letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable character
 
 ### Additional notes
 This example is fairly simple, it could even become more complicated by adding the DKIM selectors or even applying AES encryption with a key providaded by the signature DKIM field.
+
+## Running the docker container with the DNS server
+
+1. Create a docker network, if not we cannot give static IP addresses
+```
+sudo docker network create --subnet=172.20.0.0/16 test-net
+```
+
+2. Build the docker image
+```
+sudo docker build -t bind9 .
+```
+
+3. Run a container in the background for the dns server
+```
+sudo docker run -d --rm --name=dns-server --net=test-net --ip=172.20.0.2 bind9
+```
+
+4. Start the bind9 daemon
+```
+sudo docker exec -d dns-server /etc/init.d/bind9 start
+```
+
+5. Run the hosts in the same network
+```
+sudo docker run -d --rm --name=host1 --net=test-net --ip=172.20.0.3 --dns=172.20.0.2 ubuntu:bionic /bin/bash -c "while :; do sleep 10; done"
+sudo docker run -d --rm --name=host2 --net=test-net --ip=172.20.0.4 --dns=172.20.0.2 ubuntu:bionic /bin/bash -c "while :; do sleep 10; done"
+```
+
+6. Connect to one of them to see if everything is OK
+
+```
+sudo docker exec -it host1 bash
+```
+
+The output of a `ping` should be the following
+
+```
+root@0d29a2941b8c:/# ping host2.test.com
+PING host2.test.com (172.20.0.4) 56(84) bytes of data.
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=1 ttl=64 time=0.113 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=2 ttl=64 time=0.155 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=3 ttl=64 time=0.178 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=4 ttl=64 time=0.142 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=5 ttl=64 time=0.150 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=6 ttl=64 time=0.167 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=7 ttl=64 time=0.140 ms
+64 bytes from host2.test-net (172.20.0.4): icmp_seq=8 ttl=64 time=0.139 ms
+^C
+--- host2.test.com ping statistics ---
+8 packets transmitted, 8 received, 0% packet loss, time 7153ms
+rtt min/avg/max/mdev = 0.113/0.148/0.178/0.018 ms
+```
+
+
