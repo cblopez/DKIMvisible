@@ -90,14 +90,21 @@ class Server:
             return None
 
         # Get a random character separator
-        separator_ascii_repr = random.randrange(len(Server.ASCII_VALUE_CHAR))
-        separator = Server.ASCII_VALUE_CHAR[separator_ascii_repr]
+        separator_ascii_repr = None
+        separator = ''
+        while any([separator in x for x in args]):
+            separator_ascii_repr = random.randrange(len(Server.ASCII_VALUE_CHAR))
+            separator = Server.ASCII_VALUE_CHAR[separator_ascii_repr]
 
         # Get length of evaluable message, which are only the args plus 2 * number of args - 1
         util_evaluable_length = arguments_length + separators_need - 1
 
         # Get the two characters that sum the divider ASCII representation
-        char1, char2 = Server._all_available_sums(separator_ascii_repr)
+        try:
+            char1, char2 = Server._all_available_sums(separator_ascii_repr)
+        except ValueError:
+            print('[!] Could not find complementary ASCII numbers, please re-execute')
+            return None
 
         print('[*] Selected divider: {}({} ASCII). {} + {} = {}'.format(separator, separator_ascii_repr,
                                                                         char1, char2, separator_ascii_repr))
@@ -116,7 +123,11 @@ class Server:
         xor_key_length = Server.PK_TOTAL_LENGTH - 7 - util_evaluable_length
 
         # Get two characters which are the length of the evaluable message
-        sum1, sum2 = Server._all_available_sums(util_evaluable_length)
+        try:
+            sum1, sum2 = Server._all_available_sums(util_evaluable_length)
+        except ValueError:
+            print('[!] Could not find complementary ASCII numbers, please re-execute')
+            return None
 
         # Add them
         non_xored_pk += Server.ASCII_VALUE_CHAR[sum1] + Server.ASCII_VALUE_CHAR[sum2]
@@ -158,11 +169,15 @@ class Server:
         final_pk = non_xored_pk + xored_pk + key
 
         # Base64 encode
-        final_pk = base64.b64encode(bytes(final_pk, 'utf8')).decode('utf8')
+        final_pk_e = base64.b64encode(bytes(final_pk, 'utf8')).decode('utf8')
 
-        print('[+] Final PK: {}({} characters with {} bits)'.format(repr(final_pk), len(final_pk), len(final_pk) * 8))
+        print('[+] Final PK non(B64): {}({} characters with {} bits)'.format(repr(final_pk), len(final_pk), len(final_pk) * 8))
+        print('[+] Final PK: {}({} characters with {} bits)'.format(repr(final_pk_e), len(final_pk_e), len(final_pk_e) * 8))
 
-        return final_pk
+        xored_pk = ''.join([chr(ord(a) ^ ord(b)) for (a, b) in zip(xored_pk, aux)])
+        print('[+] Back to original: {}'.format(repr(xored_pk)))
+
+        return final_pk_e
 
 
 if __name__ == '__main__':

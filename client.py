@@ -53,6 +53,21 @@ class Client:
         print('[+] Evaluable information length: {}'.format(evaluable_length))
         print('[+] Key:{}'.format(repr(key)))
 
+        if len(key) > len(to_decrypt):
+            aux = key[0:len(to_decrypt)]
+        elif len(to_decrypt) > len(key):
+            number_of_repetitions = len(to_decrypt) // len(key)
+            number_of_partial_repetitions = len(to_decrypt) % len(key)
+            aux = key * number_of_repetitions + key[0:number_of_partial_repetitions]
+        else:
+            aux = key
+
+        decrypted_text = ''.join([chr(ord(a) ^ ord(b)) for (a,b) in zip(to_decrypt, aux)])
+
+        params = decrypted_text.split(separator)
+
+        print('{} params:\n-{}'.format(len(params),'\n-'.join(params)))
+
 
 if __name__ == '__main__':
     c = Client('127.0.0.1', 'example.com')
