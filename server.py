@@ -34,7 +34,7 @@ class Server:
         assert 1 <= v <= 65535
 
     @staticmethod
-    def _all_avaiable_sums(number: int) -> tuple:
+    def _all_available_sums(number: int) -> tuple:
         """ Return two valid operands than when summed, the given number is obtained
 
         :param: Number to obtain as a sum of the other numbers
@@ -78,7 +78,7 @@ class Server:
         # Total length of the evaluable message is the length of the function number, plus the length of all
         # the function parameters, plus 2 characters for separator definition, plus 2 characters for evaluable length
         # definition and plus 1 for each character separator needed
-        separators_need = sum([1 for _ in args])
+        separators_need = len(args)
         arguments_length = sum([len(x.encode('utf8')) for x in args])
         total_evaluable_length = len(reversed_hex_function_number) + arguments_length + \
                                  2 + 2 + separators_need
@@ -97,7 +97,7 @@ class Server:
         util_evaluable_length = arguments_length + separators_need - 1
 
         # Get the two characters that sum the divider ASCII representation
-        char1, char2 = Server._all_avaiable_sums(separator_ascii_repr)
+        char1, char2 = Server._all_available_sums(separator_ascii_repr)
 
         print('[*] Selected divider: {}({} ASCII). {} + {} = {}'.format(separator, separator_ascii_repr,
                                                                         char1, char2, separator_ascii_repr))
@@ -116,7 +116,7 @@ class Server:
         xor_key_length = Server.PK_TOTAL_LENGTH - 7 - util_evaluable_length
 
         # Get two characters which are the length of the evaluable message
-        sum1, sum2 = Server._all_avaiable_sums(util_evaluable_length)
+        sum1, sum2 = Server._all_available_sums(util_evaluable_length)
 
         # Add them
         non_xored_pk += Server.ASCII_VALUE_CHAR[sum1] + Server.ASCII_VALUE_CHAR[sum2]
