@@ -94,7 +94,7 @@ class Server:
             print('[!] Invalid function number data type.')
             return None
 
-        # If hex function number has one one char, add ad 0 after it. Remember that the function is reversed
+        # If hex function number has one char, add ad 0 after it. Remember that the function is reversed
         if len(reversed_hex_function_number) == 1:
             reversed_hex_function_number = '{}0'.format(reversed_hex_function_number)
 
