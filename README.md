@@ -9,16 +9,17 @@ the public key supplied within the DKIM protocol response.
 ### Why DNS and DKIM?  
 
 - Do you known how many companies **do not use DNS?** Almost none of them.  
-- Most common communicaiton channels from C2 infrastructures use HTTPs for obvious reasons, but many cyberdef software developers
+- Most common communication channels from C2 infrastructures use HTTPs for obvious reasons, but many cyberdef software developers
 (i.e. Palo Alto NGFW) are implementing different techniques for decrypting SSL. This technique does not require encryption to work
  or remain stealthy.  
 - The DKIM protocol specification allows us to extend the functionality of the algorithm by implementing "fake" DKIM selectors. Imagine 
 that your C2 server is behind the `antivirus.update.avaast.com`. Using a selector like `algorithm_modifier._domainkeys.antivirus.update.avaast.com` 
 may seem like a legitimate request and provides an "incognito" modifier for the C2 server.
-- There are several fields from a DNS DKIM TXT record that can be used to hide inforaation. This example uses the `p=` field that 
+- There are several fields from a DNS DKIM TXT record that can be used to hide information. This example uses the `p=` field that 
 stores the public key, but other fields like `s=` for storing the signature could come in handy.  
-- Since there should not be any SMTP agent involed in the communication, the legitimate DKIM processing would mostly never happen.
+- Since there should not be any SMTP agent involved in the communication, the legitimate DKIM processing would mostly never happen.
 - These technique can be executed anywhere there is a DNS server that resolves your C2 domain.  
+- Funny at it sound, the **DKIM protocol is used to provide security**.
   
 ### Resources  
 - [DNS protocol - RFC 1035](https://tools.ietf.org/html/rfc1035)  
@@ -27,30 +28,62 @@ stores the public key, but other fields like `s=` for storing the signature coul
 ### Algorithm  
 The public key `p` field is a 1024-bit key encoded in base64, as described on [RFC 6376 - 3.6.1](https://tools.ietf.org/html/rfc6376#section-3.6.1), notice 
 the length of the key is variable, real DKIM records should have a minimum recommended 1024-bit length so we will make it that way to add more "stealthiness".  
-The message hidden inside the DKIM value must contain the following information interpretabled by the C2 client:
+The message hidden inside the DKIM value must contain the following information interpretable by the C2 client:
 - Function to execute
 - Separator
 - Length of the evaluable message
 - Params
+- Key
   
-With that being said, we can now use `216 characters` to hide our message (`1024 bits`). By looking back into the needs of the communication between the clients 
-and the server, we will divide those 216 characters into different sections by executing the following steps:
+With that being said, we can now use `128 characters` to hide our message (`1024 bits`). *Note that we are going to be using ASCII characters, which means that 
+1 char = 1 byte* By looking back into the needs of the communication between the clients 
+and the server, we will divide those 128 characters into different sections by executing the following steps:
+
+#### Encode
+1) Choose a function to execute, get its number, convert it to hex and reverse it. **Why do a simple reverse?** Imagine that you send functions 2, 5 and 9: The first characters from each DKIM's public key would be
+`0`, so doing a simple reverse makes the public key start with `2`, `5` and `9` respectively, hence making the keys visually more randomized. If we choose to execute function number `27`, the first two characters 
+of the PK would be `reversed(hex(27))`. **Always represent the number by a two-length hex** i.e. `reversed(hex(5))` is still `5`, so add a `0` before the number and the execute the reversing: `reverse(05)`.
+2) Check how many separators are needed for the arguments. This is `evaluable_length = number_of_arguments - 1`.
+3) Calculate a separator: A random ASCII character that **is not contained inside the parameters**. i..e **h** is not a valid separator if we have `"hello"` as a parameter.
+4) The separator must not go in "cliear text", that why the third and fourth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = ascii_value(separator)`
+5) The fifth and sixth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = evaluable_length`.
+6) The 7th character is a `separator` and can **optionally** be used to confirm that the separator calculations are correct 
+7) Concatenate the already donde 7 characters to the parameters separated by the `separator`. i.e. If we have two params `param1` and `param2` with `k` as a separator, we concat `param1kparam2`.
+8) The rest of the characters until the `128 chars` limit are a series of random ASCII characters. (`key`)
+9) XOR the params concatenated by the separators with the just created `key`.  
+  - If `len(key) > len(params)` we take `key[0:len(params)]` as `key`
+  - If `len(key) < len(params)` we take `key * len(params) // len(key) + key[0:len(params) % len(key)]` as `key`
+  - If `len(key) = len(params)` we take `key`  
+  - When done, XOR char per char
+  - Encode **everything** in base64  
+  
+That makes the PK that is going to be set inside the `p=` DKIM record.  
+
+
+#### Decode
 1) Decode from base64
-2) The first two characters are a **reversed hex function numeration** to execute. Imagine that we would like to execute the function number 27; `hex(27) = 1B`; `reversed(1B) = B1`.So `B1` 
-basically means "Execute function 27". **Why do a simple reverse?** Imagine that you send functions 2, 5 and 9: The first characters from each DKIM's public key would be
-`0`, so doing a simple reverse makes the public key start with `2`, `5` and `9`, hence making the keys visually more randomized.  
-3) The next two characters make the separator character by substracting the first chracters to the second one, and if the result is negative, it truncates. These characters do not have to be 
-hex, but ASCII representable characters. Example: if the thrid and forth characters are `9t`, then `ASCII(t)=116 - ASCII(9)=9 = 107`, `ASCII(107) = k`. So `k` is the separator character. 
-4) Get the next `n` characters until you reach the separator chracter, in this case `k`. Add the `ASCII` values from those chracters and you will get the interpretable message length. If the  
+2) The first two characters are a **reversed hex function numeration** to execute. Imagine that we would like to execute the function number 27, the first two characters of the PK would be `B1`; `reversed(B1) = 1B`; `1B = hex(27)`.So `27`.   
+3) The next two characters make the separator character by adding their both ascii value. These characters do not have to be 
+hex, but ASCII representable characters. Example: if the third and forth characters are `\x0e\x18`, then `ASCII(\x0e)=14 - ASCII(\x18)=24 = 38`, `ASCII(38) = &`. So `&` is the separator character. 
+4) Get the next 2 characters until you reach the separator character, in this case `&`. Add the `ASCII` values from those two and you will get the interpretable message length. If the  
 letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable characters`.
-5) Get the next evaluable characters, `91` in this case.  and use the remaining characters `216 - 2(function) - 2(separator definition) - 2(message_length) - 1 (separator) - 91 (evaluable characters) - 1 (separator)=  119 characters` for XORing the evauable characters, a.k.a. use as key.  
+5) **Optionally**, check if the 7th character is the separator character just calculated in step 2. 
+5) Get the next evaluable characters, `91` in this case.  and use the remaining characters `128 - 2(function) - 2(separator definition) - 2(message_length) - 1 (separator) - 91 (evaluable characters) =  30 characters` for XORing the evaluable characters, a.k.a. use as key.  
   - If `len(key) > len(evaluable_characters)` get `key[0:len(evaluable_characters)]` and apply the XOR.
   - If `len(evaluable_characters) > len(key)` get `len(evaluable_characters) // len(key) = X`, then take `key * X + key[0:(len(evaluable_characters) - (len(key) * X))]`, then XOR.  
   - If lengths are equal, XOR them directly
 6) Take the result, split by the separator character, and those should be the function parameters.
 
-### Additional notes
-This example is fairly simple, it could even become more complicated by adding the DKIM selectors or even applying AES encryption with a key providaded by the signature DKIM field.
+### Implementation 
+- The `server.py` file contains the Encoding algorithm.
+- The `client.py` file contains the Decoding algorithm.
+- The `main.py` file executes an encoding from the server and a decoding from the client, so you can check how the messaged is passed from one to another.
+
+### Additional notes  
+
+- This example is fairly simple, it could even become more complicated by adding the DKIM selectors or even applying AES encryption with a key providaded by the signature DKIM field. 
+- The given implementation only supports the `print(*args)`, `reverse_shell(port, ip)` and `sleep(seconds)` functions.
+- Function storage with its corresponding number, description, etc... should be object-oriented, but a `dict` is used here to avoid complicated examples.
 
 ## Running the docker container with the DNS server
 

