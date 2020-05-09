@@ -108,7 +108,7 @@ class Server:
 
         # We need at least 1 non evaluable characters inside the PK to set as key for XOR decryption in client
         # If there are not free characters, PK cannot be created
-        if (Server.PK_TOTAL_LENGTH - 1) <= total_evaluable_length:
+        if Server.PK_TOTAL_LENGTH <= total_evaluable_length:
             print("[!] Two many characters to hide inside a 1024 bit Public Key")
             return None
 
