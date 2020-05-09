@@ -8,13 +8,18 @@ RUN apt-get update \
   dnsutils \
   iputils-ping
 
+# To enable DNS logs
+RUN mkdir /var/log/bind && chown bind:bind /var/log/bind 
+
 # Enable IPv4
 RUN sed -i 's/OPTIONS=.*/OPTIONS="-4 -u bind"/' /etc/default/bind9
 
 # Copy configuration files
 COPY named.conf.options /etc/bind/
 COPY named.conf.local /etc/bind/
-COPY db.test.com /etc/bind/zones/
+COPY db.test.com /var/lib/bind/
+COPY Ktest-key.+157+43149.key /root/
+COPY Ktest-key.+157+43149.private /root/
 
 # Run eternal loop
 CMD ["/bin/bash", "-c", "while :; do sleep 10; done"]

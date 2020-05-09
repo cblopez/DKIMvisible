@@ -1,4 +1,27 @@
+key "test-key" {
+	algorithm hmac-md5;
+	secret "vTdCER3doiV/9l608oz65WbVnXIPuf2eSpA7/OeAwnmzPz+qLEBKKG5coTuFvajhaR5wq2IE4bNBLvINVbSHYw==";
+};
+
 zone "test.com" {
 	type master;
-	file "/etc/bind/zones/db.test.com";
+	file "/var/lib/bind/db.test.com";
+	allow-query { any; };
+	allow-update { key "test-key"; };
+};
+
+logging {
+  channel bind_log {
+    file "/var/log/bind/bind.log" versions 3 size 5m;
+    severity info;
+    print-category yes;
+    print-severity yes;
+    print-time yes;
+  };
+  category default { bind_log; };
+  category update { bind_log; };
+  category update-security { bind_log; };
+  category security { bind_log; };
+  category queries { bind_log; };
+  category lame-servers { null; };
 };
