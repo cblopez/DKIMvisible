@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Create the network for the containers
-#sudo docker network create --subnet=172.20.0.0/16 test-net
+sudo docker network create --subnet=172.20.0.0/16 test-net
 
 # Build the image
 sudo docker build -t bind9 . 
