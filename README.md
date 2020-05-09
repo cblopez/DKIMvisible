@@ -87,7 +87,7 @@ letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable character
 
 ## Running the docker container with the DNS server
 
-** You can just run setup.sh and forget about all of this**
+**You can just run setup.sh and forget about all of this**
 
 1. Create a docker network, if not we cannot give static IP addresses
 ```
