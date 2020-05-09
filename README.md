@@ -87,6 +87,8 @@ letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable character
 
 ## Running the docker container with the DNS server
 
+** You can just run setup.sh and forget about all of this**
+
 1. Create a docker network, if not we cannot give static IP addresses
 ```
 sudo docker network create --subnet=172.20.0.0/16 test-net
@@ -109,8 +111,8 @@ sudo docker exec -d dns-server /etc/init.d/bind9 start
 
 5. Run the hosts in the same network
 ```
-sudo docker run -d --rm --name=host1 --net=test-net --ip=172.20.0.3 --dns=172.20.0.2 ubuntu:bionic /bin/bash -c "while :; do sleep 10; done"
-sudo docker run -d --rm --name=host2 --net=test-net --ip=172.20.0.4 --dns=172.20.0.2 ubuntu:bionic /bin/bash -c "while :; do sleep 10; done"
+sudo docker run -d --rm --name=host1 --net=test-net --ip=172.20.0.3 --dns=172.20.0.2 bind9
+sudo docker run -d --rm --name=host2 --net=test-net --ip=172.20.0.4 --dns=172.20.0.2 bind9
 ```
 
 6. Connect to one of them to see if everything is OK
@@ -136,6 +138,96 @@ PING host2.test.com (172.20.0.4) 56(84) bytes of data.
 --- host2.test.com ping statistics ---
 8 packets transmitted, 8 received, 0% packet loss, time 7153ms
 rtt min/avg/max/mdev = 0.113/0.148/0.178/0.018 ms
+```
+
+## Dynamic update the DNS server
+
+1. Enter one of the hosts containers
+```
+sudo docker exec -it host1 bash
+```
+
+2. Go to the `/root` folder and run the following command:
+```
+nsupdate -k Ktest-key.+157+43149.private
+> server ns1.test.com
+> zone test.com
+> update add host1.test.com 3600 TXT "THIS IS A TEST"
+> send
+> 
+```
+
+3. Check if the changes worked
+
+```
+# dig -t TXT host1.test.com
+; <<>> DiG 9.11.3-1ubuntu1.11-Ubuntu <<>> -t TXT host1.test.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63268
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: 15de3bef00753aede9c0126e5eb67d848053513bfa7c5dd0 (good)
+;; QUESTION SECTION:
+;host1.test.com.			IN	TXT
+
+;; ANSWER SECTION:
+host1.test.com.		3600	IN	TXT	"THIS IS A TEST"
+host1.test.com.		3600	IN	TXT	"Este es el servidor 1"
+
+;; AUTHORITY SECTION:
+test.com.		604800	IN	NS	ns1.test.com.
+
+;; ADDITIONAL SECTION:
+ns1.test.com.		604800	IN	A	172.20.0.2
+
+;; Query time: 1 msec
+;; SERVER: 127.0.0.11#53(127.0.0.11)
+;; WHEN: Sat May 09 09:53:08 UTC 2020
+;; MSG SIZE  rcvd: 166
+```
+
+The update can also be done from a file 
+```
+# cat update.txt 
+server ns1.test.com
+zone test.com
+update add host1.test.com 3600 TXT "THIS IS ANOTHER TEST"
+send
+
+# nsupdate -k Ktest-key.+157+43149.private update.txt
+# dig -t TXT host1.test.com
+
+; <<>> DiG 9.11.3-1ubuntu1.11-Ubuntu <<>> -t TXT host1.test.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 25589
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: b42b82fd5049e27e6676c7a65eb67e545875661b98722d01 (good)
+;; QUESTION SECTION:
+;host1.test.com.			IN	TXT
+
+;; ANSWER SECTION:
+host1.test.com.		3600	IN	TXT	"THIS IS ANOTHER TEST"
+host1.test.com.		3600	IN	TXT	"THIS IS A TEST"
+host1.test.com.		3600	IN	TXT	"Este es el servidor 1"
+
+;; AUTHORITY SECTION:
+test.com.		604800	IN	NS	ns1.test.com.
+
+;; ADDITIONAL SECTION:
+ns1.test.com.		604800	IN	A	172.20.0.2
+
+;; Query time: 1 msec
+;; SERVER: 127.0.0.11#53(127.0.0.11)
+;; WHEN: Sat May 09 09:56:36 UTC 2020
+;; MSG SIZE  rcvd: 199
+
 ```
 
 
