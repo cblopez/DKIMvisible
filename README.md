@@ -47,8 +47,7 @@ of the PK would be `reversed(hex(27))`. **Always represent the number by a two-l
 3) Calculate a separator: A random ASCII character that **is not contained inside the parameters**. i..e **h** is not a valid separator if we have `"hello"` as a parameter.
 4) The separator must not go in "cliear text", that why the third and fourth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = ascii_value(separator)`
 5) The fifth and sixth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = evaluable_length`.
-6) The 7th character is a `separator` and can **optionally** be used to confirm that the separator calculations are correct 
-7) Concatenate the already donde 7 characters to the parameters separated by the `separator`. i.e. If we have two params `param1` and `param2` with `k` as a separator, we concat `param1kparam2`.
+6) Concatenate the already calculated 6 characters to the parameters separated by the `separator`. i.e. If we have two params `param1` and `param2` with `k` as a separator, we concat `param1kparam2`.
 8) The rest of the characters until the `128 chars` limit are a series of random ASCII characters. (`key`)
 9) XOR the params concatenated by the separators with the just created `key`.  
   - If `len(key) > len(params)` we take `key[0:len(params)]` as `key`
@@ -68,7 +67,7 @@ hex, but ASCII representable characters. Example: if the third and forth charact
 4) Get the next 2 characters until you reach the separator character, in this case `&`. Add the `ASCII` values from those two and you will get the interpretable message length. If the  
 letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable characters`.
 5) **Optionally**, check if the 7th character is the separator character just calculated in step 2. 
-5) Get the next evaluable characters, `91` in this case.  and use the remaining characters `128 - 2(function) - 2(separator definition) - 2(message_length) - 1 (separator) - 91 (evaluable characters) =  30 characters` for XORing the evaluable characters, a.k.a. use as key.  
+5) Get the next evaluable characters, `91` in this case.  and use the remaining characters `128 - 2(function) - 2(separator definition) - 2(message_length) - 91 (evaluable characters) =  31 characters` for XORing the evaluable characters, a.k.a. use as key.  
   - If `len(key) > len(evaluable_characters)` get `key[0:len(evaluable_characters)]` and apply the XOR.
   - If `len(evaluable_characters) > len(key)` get `len(evaluable_characters) // len(key) = X`, then take `key * X + key[0:(len(evaluable_characters) - (len(key) * X))]`, then XOR.  
   - If lengths are equal, XOR them directly

@@ -101,12 +101,12 @@ class Server:
         # Total length of the evaluable message is the length of the function number, plus the length of all
         # the function parameters, plus 2 characters for separator definition, plus 2 characters for evaluable length
         # definition and plus 1 for each character separator needed
-        separators_need = len(args)
+        separators_need = len(args) - 1
         arguments_length = sum([len(x.encode('utf8')) for x in args])
         total_evaluable_length = len(reversed_hex_function_number) + arguments_length + \
                                  2 + 2 + separators_need
 
-        # We need at least 1 non evaluable characters inside the PK to se as key for XOR decryption in client
+        # We need at least 1 non evaluable characters inside the PK to set as key for XOR decryption in client
         # If there are not free characters, PK cannot be created
         if (Server.PK_TOTAL_LENGTH - 1) <= total_evaluable_length:
             print("[!] Two many characters to hide inside a 1024 bit Public Key")
@@ -120,7 +120,7 @@ class Server:
             separator = Server.ASCII_VALUE_CHAR[separator_ascii_repr]
 
         # Get length of evaluable message, which are only the args plus 2 * number of args - 1
-        util_evaluable_length = arguments_length + separators_need - 1
+        util_evaluable_length = arguments_length + separators_need
 
         # Get the two characters that sum the divider ASCII representation
         try:
@@ -130,7 +130,7 @@ class Server:
             return None
 
         print('[*] Selected divider: {}({} ASCII). {} + {} = {}'.format(separator, separator_ascii_repr,
-                                                                        char1, char2, separator_ascii_repr))
+                                                                        char1, char2, repr(separator_ascii_repr)))
 
         # Now we have the function number, the ASCII number to create the separator, the separator,
         # the util evaluable length, we can mix every thing
@@ -143,7 +143,7 @@ class Server:
         non_xored_pk += Server.ASCII_VALUE_CHAR[char1] + Server.ASCII_VALUE_CHAR[char2]
 
         # How many random characters do we have to create the XOR key?
-        xor_key_length = Server.PK_TOTAL_LENGTH - 7 - util_evaluable_length
+        xor_key_length = Server.PK_TOTAL_LENGTH - 6 - util_evaluable_length
 
         # Get two characters which are the length of the evaluable message
         try:
@@ -154,9 +154,6 @@ class Server:
 
         # Add them
         non_xored_pk += Server.ASCII_VALUE_CHAR[sum1] + Server.ASCII_VALUE_CHAR[sum2]
-
-        # Add one separator
-        non_xored_pk += separator
 
         # Create another variable to store the rest
         to_xor_pk = separator.join(args)

@@ -76,7 +76,6 @@ class Client:
 
     ASCII_VALUE_CHAR = {x: chr(x) for x in range(0, 128)}
 
-
     def __init__(self, c2s_ip: str, target_domain: str):
         self.c2s_ip = c2s_ip
         self.target_domain = target_domain
@@ -109,7 +108,7 @@ class Client:
         assert 1 <= v <= 65535
 
     @staticmethod
-    def decode(pk: str) -> (None, str):
+    def decode(pk: str):
         """ Applies the algorithm described in the repository to decipher and decode a given Public Key
         from the DNS DKIM TXT record.
 
@@ -127,12 +126,12 @@ class Client:
         # Evaluable_length are the fifth and sixth ascii values combined
         evaluable_length = ord(pk[4]) + ord(pk[5])
         # Calculate the number of characters to decrypt
-        to_decrypt = pk[7:7 + evaluable_length]
+        to_decrypt = pk[6:6 + evaluable_length]
         # The key is the rest of the characters
-        key = pk[7 + evaluable_length:]
+        key = pk[6 + evaluable_length:]
 
         print('[+] Function number:{}'.format(function_number))
-        print("[+] Separator: {}".format(separator))
+        print("[+] Separator: {}".format(repr(separator)))
         print('[+] Evaluable information length: {}'.format(evaluable_length))
         print('[+] Key:{}'.format(repr(key)))
 
