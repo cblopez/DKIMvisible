@@ -17,7 +17,7 @@ def main():
     print('===============')
     print('CLIENT')
     print('===============')
-    c = Client('127.0.0.1', 'example.com')
+    c = Client('127.0.0.1', 'example.com', 'alice')
     c.decode(msg)
 
 

