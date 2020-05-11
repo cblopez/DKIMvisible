@@ -84,6 +84,11 @@ letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable character
 - The given implementation only supports the `print(*args)`, `reverse_shell(port, ip)` and `sleep(seconds)` functions.
 - Function storage with its corresponding number, description, etc... should be object-oriented, but a `dict` is used here to avoid complicated examples.
 
+## Install the requirements
+```python
+pip install -r requirements.txt
+```
+
 ## Running the docker container with the DNS server
 
 **You can just run setup.sh and forget about all of this**
