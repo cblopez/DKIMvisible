@@ -139,7 +139,45 @@ PING host2.test.com (172.20.0.4) 56(84) bytes of data.
 rtt min/avg/max/mdev = 0.113/0.148/0.178/0.018 ms
 ```
 
-## Dynamic update the DNS server
+## Client usage  
+Start the client and set the DNS server IP. For this demonstration leave the default arguments as such.
+```python
+python3 client.py <DNS-server-IP>
+# The client will stay on infinite loop and will request DKIM records every 6-8 seconds
+```
+
+## Server usage
+Start the server. For this demonstration leave the default arguments as such.
+```python
+python3 server.py
+
+# The server will ask which client you want to talk to. Say "alice"
+[?] C2 client key name: alice
+
+# Choose one of the functions
+Choose a function to execute on client
+	1) Print
+	2) Reverse shell
+	3) Sleep
+Option: 1
+
+# Look at the parameters, in this example the print funciton takes an number of arguments (each argument separated by a black space)
+[*] Parameters for "Print" function
+	[*] Param name: *args
+	[*] Param type: list
+	[*] Param description: Any number of strings to print
+Value: multi argument remote function execution
+
+# Prints the operations and updates the DNS
+[*] Selected divider: O(79 ASCII). 5 + 74 = 79
+[+] Info util: 'multiOargumentOremoteOfunctionOexecution' (length = 40) 
+ [+] Key util: "&=etJ@i<e+6H7%-N|/&`hiymXqL*5 >u5%KS/N<&y\t!Sw$GMG;s[LJp{\x0cY'|PZ]>vj@x/s8h^6,+#OQ&-S" (length = 82)
+[+] Encrypted data: "KH\t\x00#\x0f\x08N\x02^[-YQb<\x19BI\x14\r&\x1f\x186\x128CZNq\x10M@(&['SH"
+[+] Final PK non(B64): '10\x05J\x06"KH\t\x00#\x0f\x08N\x02^[-YQb<\x19BI\x14\r&\x1f\x186\x128CZNq\x10M@(&[\'SH&=etJ@i<e+6H7%-N|/&`hiymXqL*5 >u5%KS/N<&y\t!Sw$GMG;s[LJp{\x0cY\'|PZ]>vj@x/s8h^6,+#OQ&-S'(128 characters with 1024 bits)
+[+] Final PK: 'MTAFSgYiS0gJACMPCE4CXlstWVFiPBlCSRQNJh8YNhI4Q1pOcRBNQCgmWydTSCY9ZXRKQGk8ZSs2SDclLU58LyZgaGl5bVhxTCo1ID51NSVLUy9OPCZ5CSFTdyRHTUc7c1tMSnB7DFknfFBaXT52akB4L3M4aF42LCsjT1EmLVM='(172 characters with 1376 bits)
+```
+ 
+## Dynamically and manually update the DNS server
 
 1. Enter one of the hosts containers
 ```
