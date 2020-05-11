@@ -211,7 +211,7 @@ class Server:
             :param pk: Encoded PK
         """
         with open('temp.txt', 'w') as f:
-            f.write('server ns1.text.com\n')
+            f.write('server ns1.test.com\n')
             f.write('zone test.com\n')
             # Add the record for 9 seconds
             f.write('update add {}._domainkey.text.com 9 TXT "v=DKIM1\\; g=*\\; k=rsa\\; p={}"\n'.format(key_name,pk))
