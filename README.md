@@ -74,22 +74,17 @@ letters were `+0` then `ASCII(+) + ASCII(0) = 43 + 48 = 91 # avaluable character
 6) Take the result, split by the separator character, and those should be the function parameters.
 
 ### Implementation 
-- The `server.py` file contains the Encoding algorithm.
-- The `client.py` file contains the Decoding algorithm.
-- The `main.py` file executes an encoding from the server and a decoding from the client, so you can check how the messaged is passed from one to another.
+- The `server.py` file contains the Encoding algorithm and communication with a bind9 DNS server.
+- The `client.py` file contains the Decoding algorithm and implements DNS requests.
+- The `main.py` file executes an encoding from the server and a decoding from the client, so you can check how the message is passed from one to another.
 
-### Additional notes  
-
-- This example is fairly simple, it could even become more complicated by adding the DKIM selectors or even applying AES encryption with a key providaded by the signature DKIM field. 
-- The given implementation only supports the `print(*args)`, `reverse_shell(port, ip)` and `sleep(seconds)` functions.
-- Function storage with its corresponding number, description, etc... should be object-oriented, but a `dict` is used here to avoid complicated examples.
 
 ## Install the requirements
 ```python
 pip install -r requirements.txt
 ```
 
-## Running the docker container with the DNS server
+## Run the docker container with the DNS server
 
 **You can just run setup.sh and forget about all of this**
 
@@ -181,95 +176,8 @@ Value: multi argument remote function execution
 [+] Final PK non(B64): '10\x05J\x06"KH\t\x00#\x0f\x08N\x02^[-YQb<\x19BI\x14\r&\x1f\x186\x128CZNq\x10M@(&[\'SH&=etJ@i<e+6H7%-N|/&`hiymXqL*5 >u5%KS/N<&y\t!Sw$GMG;s[LJp{\x0cY\'|PZ]>vj@x/s8h^6,+#OQ&-S'(128 characters with 1024 bits)
 [+] Final PK: 'MTAFSgYiS0gJACMPCE4CXlstWVFiPBlCSRQNJh8YNhI4Q1pOcRBNQCgmWydTSCY9ZXRKQGk8ZSs2SDclLU58LyZgaGl5bVhxTCo1ID51NSVLUy9OPCZ5CSFTdyRHTUc7c1tMSnB7DFknfFBaXT52akB4L3M4aF42LCsjT1EmLVM='(172 characters with 1376 bits)
 ```
- 
-## Dynamically and manually update the DNS server
+### Additional notes  
 
-1. Enter one of the hosts containers
-```
-sudo docker exec -it host1 bash
-```
-
-2. Go to the `/root` folder and run the following command:
-```
-nsupdate -k Ktest-key.+157+43149.private
-> server ns1.test.com
-> zone test.com
-> update add host1.test.com 3600 TXT "THIS IS A TEST"
-> send
-> 
-```
-
-3. Check if the changes worked
-
-```
-# dig -t TXT host1.test.com
-; <<>> DiG 9.11.3-1ubuntu1.11-Ubuntu <<>> -t TXT host1.test.com
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63268
-;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 1, ADDITIONAL: 2
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 4096
-; COOKIE: 15de3bef00753aede9c0126e5eb67d848053513bfa7c5dd0 (good)
-;; QUESTION SECTION:
-;host1.test.com.			IN	TXT
-
-;; ANSWER SECTION:
-host1.test.com.		3600	IN	TXT	"THIS IS A TEST"
-host1.test.com.		3600	IN	TXT	"Este es el servidor 1"
-
-;; AUTHORITY SECTION:
-test.com.		604800	IN	NS	ns1.test.com.
-
-;; ADDITIONAL SECTION:
-ns1.test.com.		604800	IN	A	172.20.0.2
-
-;; Query time: 1 msec
-;; SERVER: 127.0.0.11#53(127.0.0.11)
-;; WHEN: Sat May 09 09:53:08 UTC 2020
-;; MSG SIZE  rcvd: 166
-```
-
-The update can also be done from a file 
-```
-# cat update.txt 
-server ns1.test.com
-zone test.com
-update add host1.test.com 3600 TXT "THIS IS ANOTHER TEST"
-send
-
-# nsupdate -k Ktest-key.+157+43149.private update.txt
-# dig -t TXT host1.test.com
-
-; <<>> DiG 9.11.3-1ubuntu1.11-Ubuntu <<>> -t TXT host1.test.com
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 25589
-;; flags: qr aa rd ra; QUERY: 1, ANSWER: 3, AUTHORITY: 1, ADDITIONAL: 2
-
-;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 4096
-; COOKIE: b42b82fd5049e27e6676c7a65eb67e545875661b98722d01 (good)
-;; QUESTION SECTION:
-;host1.test.com.			IN	TXT
-
-;; ANSWER SECTION:
-host1.test.com.		3600	IN	TXT	"THIS IS ANOTHER TEST"
-host1.test.com.		3600	IN	TXT	"THIS IS A TEST"
-host1.test.com.		3600	IN	TXT	"Este es el servidor 1"
-
-;; AUTHORITY SECTION:
-test.com.		604800	IN	NS	ns1.test.com.
-
-;; ADDITIONAL SECTION:
-ns1.test.com.		604800	IN	A	172.20.0.2
-
-;; Query time: 1 msec
-;; SERVER: 127.0.0.11#53(127.0.0.11)
-;; WHEN: Sat May 09 09:56:36 UTC 2020
-;; MSG SIZE  rcvd: 199
-
-```
-
-
+- This example is fairly simple and is not functional, it could even become more complicated by adding the DKIM selectors or even applying AES encryption with a key providaded by the signature DKIM field. 
+- The given implementation only supports the `print(*args)`, `reverse_shell(port, ip)` and `sleep(seconds)` functions.
+- Function storage with its corresponding number, description, etc... should be object-oriented, but a `dict` is used here.  
