@@ -85,7 +85,7 @@ class Client:
     """
 
     ASCII_VALUE_CHAR = {x: chr(x) for x in range(0, 128)}
-    PK_REGEX = re.compile('p=(.*);')
+    PK_REGEX = re.compile('p=(.*)')
 
     def __init__(self, c2s_ip: str, target_domain: str, key_name: str):
         self.c2s_ip = c2s_ip
