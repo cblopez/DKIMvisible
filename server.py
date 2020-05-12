@@ -15,6 +15,7 @@ class Server:
     information via DKIM records.
 
         :param domain: Domain from the DNS server
+        :param key_file: Private key file
         :param port: DNS service port, default 53
     """
 
@@ -44,8 +45,9 @@ class Server:
 
     }
 
-    def __init__(self, domain: str, port: int = 53):
+    def __init__(self, domain: str, key_file, port: int = 53):
         self.domain = domain
+        self.key_file = key_file
         self.port = port
 
     @property
@@ -218,7 +220,7 @@ class Server:
             f.write('send\n')
 
         # Execute the update
-        command_exe = subprocess.Popen('nsupdate -k Ktest-key.+157+43149.private temp.txt'.split(),
+        command_exe = subprocess.Popen('nsupdate -k {} temp.txt'.format(self.key_file).split(),
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = command_exe.communicate()
         if output:
@@ -277,8 +279,14 @@ if __name__ == '__main__':
                         default='test.com',
                         dest='domain',
                         type=str)
+    parser.add_argument('-k', '-key-file',
+                        help='Private key file. Default: Ktest-key.+157+43149.private',
+                        required=False,
+                        default="Ktest-key.+157+43149.private",
+                        dest="key_file",
+                        type=str)
 
     args = vars(parser.parse_args())
 
-    s = Server(args['domain'])
+    s = Server(args['domain'], args['key_file'])
     s.serve_forever()

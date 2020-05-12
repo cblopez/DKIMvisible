@@ -1,4 +1,0 @@
-server ns1.text.com
-zone text.com
-update add alice._domainkey.text.com 9 TXT "v=DKIM1; g=*; k=rsa; p=MTAFSgYiS0gJACMPCE4CXlstWVFiPBlCSRQNJh8YNhI4Q1pOcRBNQCgmWydTSCY9ZXRKQGk8ZSs2SDclLU58LyZgaGl5bVhxTCo1ID51NSVLUy9OPCZ5CSFTdyRHTUc7c1tMSnB7DFknfFBaXT52akB4L3M4aF42LCsjT1EmLVM=;"
-send
