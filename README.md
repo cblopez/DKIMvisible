@@ -45,7 +45,7 @@ and the server, we will divide those 128 characters into different sections by e
 of the PK would be `reversed(hex(27))`. **Always represent the number by a two-length hex** i.e. `reversed(hex(5))` is still `5`, so add a `0` before the number and the execute the reversing: `reverse(05)`.
 2) Check how many separators are needed for the arguments. This is `number_of_arguments - 1`.
 3) Calculate a separator: A random ASCII character that **is not contained inside the parameters**. i..e `h` is not a valid separator if we have `"hello"` as a parameter.
-4) The separator must not go in "cliear text", that why the third and fourth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = ascii_value(separator)`
+4) The separator must not go in "clear text", that why the third and fourth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = ascii_value(separator)`
 5) The fifth and sixth characters of the PK are going to be two characters `x` and `y` so that `ascii_value(x) + ascii_value(y) = evaluable_length`.
 6) Concatenate the already calculated 6 characters to the parameters separated by the `separator`. i.e. If we have two params `param1` and `param2` with `k` as a separator, we concat `param1kparam2`.
 8) The rest of the characters until the `128 chars` limit are a series of random ASCII characters. (`key`)
